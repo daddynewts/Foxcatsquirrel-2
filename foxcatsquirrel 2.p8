@@ -16,8 +16,8 @@ function _init()
   dy=0,
   max_dx=3.4,	-- default 3
   max_dy=3, -- default 3
-  acc=0.1, -- 0.2
-  boost=3.8,--3.8, -- was 4, now 3.8
+  acc=0.15, -- 0.2
+  boost=0,--3.8, -- was 4, now 3.8
   minboost=1,
   maxboost=3.8,
   anim=0,
@@ -28,6 +28,7 @@ function _init()
   falling=false,
   sliding=false,
   landed=false,
+  climbing=false,
   waslanded=0,
   gliding=false,
   dead=false,
@@ -55,14 +56,17 @@ end
 
 function player_update()
 
-		--level up
-		if collide_map(player,"left",7) or collide_map(player,"right",7) or collide_map(player,"down",7) then
-			currentlevel+=1
-			lvlup(currentlevel)
-		end
-  
+ if player.climbing==true then
+  player.dy=0
+ end
+
  	if collide_map(player, "down", 1) then
 			collide_w_platform = true
+		end
+		
+		if collide_map(player,"left",1) or collide_map(player,"right",1) then
+		 player.climbing=true
+		else player.climbing=false
 		end
 		
   --physics
@@ -93,13 +97,64 @@ function player_update()
   end
 
   --jump
-  if btnp(⬆️) and player.landed
-  or btnp(🅾️) and player.landed
-  or btnp(❎) and player.landed then
-  		sfx(0)
+ if btn(❎)
+  and not player.gliding
+  and not player.falling
+  and not btn(⬇️)
+   then
+    player.holding=true
+   else
+    player.holding=false
+    player.boost=0
+ end
+ 
+ if player.holding
+  then
+   player.boost+=0.3
+ end
+ 
+ if player.boost>=player.maxboost
+  then
+  player.boost=0
+ end
+ 
+ -- player is going up here
+ if player.boost>=1 
+  and player.waslanded>=-0.4
+   then
     player.dy-=player.boost
     player.landed=false
-  end
+    player.waslanded-=0.2
+ end
+ 
+ if player.boost>=1
+  and player.waslanded>=-0.3
+   then
+    sfx(jump_sfx,0)
+ end
+ 
+ if player.landed
+  and not btn(❎)
+   then
+    player.boost=0
+    player.holdtime=0
+    player.waslanded=0
+ end
+  
+ -- gliding
+ if btn(❎)
+ and player.falling
+  then
+    player.gliding=true
+    player.dy/=1.3
+    glidetime+=0.2
+    player.boost=0
+ else if player.falling
+  then
+    player.gliding=false
+    glidetime=0
+ end 
+ end
   
   if btnp(⬇️)
   and collide_map(player, "down", 5)
@@ -160,29 +215,34 @@ function player_update()
 end
 
 function player_animate()
-  if player.jumping then
-    player.sp=7
-  elseif player.falling then
-    player.sp=8
-  elseif player.sliding then
-    player.sp=9
-  elseif player.running then
-    if time()-player.anim>.1 then
+ if player.jumping then
+   player.sp=7
+ elseif player.gliding then
+   player.sp=7
+ elseif player.falling then
+  player.sp=8
+ elseif player.sliding then
+   player.sp=9
+ elseif player.running then
+   if time()-player.anim>.1 then
       player.anim=time()
-      player.sp+=1
+      player.sp+=2
       if player.sp>6 then
         player.sp=3
-      end
-    end
-  else --player idle
-    if time()-player.anim>.3 then
+  end
+ end
+ else 
+ 
+ --player idle
+  
+   if time()-player.anim>.3 then
       player.anim=time()
       player.sp+=1
       if player.sp>2 then
         player.sp=1
       end
-    end
-  end
+   end
+ end
 end
 
 function limit_speed(num,maximum)
@@ -419,7 +479,7 @@ __map__
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-0000440000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 4040404040404000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
